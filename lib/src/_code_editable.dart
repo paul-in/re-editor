@@ -1,3 +1,4 @@
+import "package:flutter/scheduler.dart";
 part of re_editor;
 
 const double _kDefaultTextSize = 13.0;
@@ -11,6 +12,7 @@ class _CodeEditable extends StatefulWidget {
   final GlobalKey editorKey;
   final String? hint;
   final CodeIndicatorBuilder? indicatorBuilder;
+  final CodeLineWidgetBuilder? widgetBuilder;
   final CodeScrollbarBuilder? scrollbarBuilder;
   final double? verticalScrollbarWidth;
   final double? horizontalScrollbarHeight;
@@ -53,6 +55,7 @@ class _CodeEditable extends StatefulWidget {
     required this.editorKey,
     this.hint,
     this.indicatorBuilder,
+    this.widgetBuilder,
     this.scrollbarBuilder,
     this.verticalScrollbarWidth,
     this.horizontalScrollbarHeight,
@@ -230,7 +233,24 @@ class _CodeEditableState extends State<_CodeEditable> with AutomaticKeepAliveCli
             );
           }
         }
+
+        if (widget.widgetBuilder != null) {
+          codeField = Stack(
+            clipBehavior: Clip.none,
+            children: [
+              codeField,
+              Positioned.fill(
+                child: _CodeWidgetOverlay(
+                  notifier: _codeIndicatorValueNotifier,
+                  builder: widget.widgetBuilder!,
+                  codeLines: widget.controller.codeLines,
+                ),
+              ),
+            ],
+          );
+        }
         final Widget? indicator = widget.indicatorBuilder?.call(
+
           context,
           widget.controller,
           widget.chunkController,
@@ -491,4 +511,155 @@ class _CodeCursorBlinkController extends ValueNotifier<bool> {
     super.dispose();
   }
 
+}
+class _CodeWidgetOverlay extends StatefulWidget {
+  final CodeIndicatorValueNotifier notifier;
+  final CodeLineWidgetBuilder builder;
+  final CodeLines codeLines;
+
+  const _CodeWidgetOverlay({
+    required this.notifier,
+    required this.builder,
+    required this.codeLines,
+  });
+
+  @override
+  State<_CodeWidgetOverlay> createState() => _CodeWidgetOverlayState();
+}
+
+class _CodeWidgetOverlayState extends State<_CodeWidgetOverlay> {
+  CodeIndicatorValue? _value;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = widget.notifier.value;
+    widget.notifier.addListener(_onValueChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CodeWidgetOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.notifier != widget.notifier) {
+      oldWidget.notifier.removeListener(_onValueChanged);
+      widget.notifier.addListener(_onValueChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.notifier.removeListener(_onValueChanged);
+    super.dispose();
+  }
+
+  void _onValueChanged() {
+    if (mounted) {
+      if (WidgetsBinding.instance.schedulerPhase == SchedulerPhase.idle) {
+        setState(() {
+          _value = widget.notifier.value;
+        });
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _value = widget.notifier.value;
+            });
+          }
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_value == null) return const SizedBox.shrink();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final List<Widget> children = [];
+        final List<int> lineIndices = [];
+
+        for (final paragraph in _value!.paragraphs) {
+          if (paragraph.index < 0 || paragraph.index >= widget.codeLines.length) continue;
+          
+          final childWidget = widget.builder(
+            context: context,
+            index: paragraph.index,
+            codeLine: widget.codeLines[paragraph.index],
+          );
+
+          if (childWidget != null) {
+            final double dx = paragraph.offset.dx;
+            final double maxWidth = constraints.maxWidth - dx;
+            
+            children.add(
+              // Override Flow's maxHeight limit to prevent image shrinking, 
+              // and mimic Stack's width constraints.
+              OverflowBox(
+                alignment: Alignment.topLeft,
+                minWidth: 0,
+                maxWidth: maxWidth > 0 ? maxWidth : 0.0,
+                minHeight: 0,
+                maxHeight: double.infinity,
+                child: childWidget,
+              ),
+            );
+            lineIndices.add(paragraph.index);
+          }
+        }
+
+        if (children.isEmpty) return const SizedBox.shrink();
+
+        return Flow(
+          clipBehavior: Clip.none,
+          delegate: _CodeWidgetOverlayFlowDelegate(
+            notifier: widget.notifier,
+            lineIndices: lineIndices,
+          ),
+          children: children,
+        );
+      },
+    );
+  }
+}
+
+class _CodeWidgetOverlayFlowDelegate extends FlowDelegate {
+  final CodeIndicatorValueNotifier notifier;
+  final List<int> lineIndices;
+
+  _CodeWidgetOverlayFlowDelegate({
+    required this.notifier,
+    required this.lineIndices,
+  }) : super(repaint: notifier);
+
+  @override
+  void paintChildren(FlowPaintingContext context) {
+    final CodeIndicatorValue? value = notifier.value;
+    if (value == null) return;
+
+    for (int i = 0; i < context.childCount; i++) {
+      final int lineIndex = lineIndices[i];
+
+      CodeLineRenderParagraph? targetParagraph;
+      for (final p in value.paragraphs) {
+        if (p.index == lineIndex) {
+          targetParagraph = p;
+          break;
+        }
+      }
+
+      if (targetParagraph != null) {
+        context.paintChild(i, transform: Matrix4.translationValues(
+          targetParagraph.offset.dx,
+          targetParagraph.offset.dy,
+          0,
+        ));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CodeWidgetOverlayFlowDelegate oldDelegate) {
+    return notifier != oldDelegate.notifier || lineIndices != oldDelegate.lineIndices;
+  }
 }

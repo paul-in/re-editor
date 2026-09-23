@@ -1,6 +1,17 @@
 part of re_editor;
 
 /// An immutable style describing how to format and paint editor content.
+
+/// Signature for building a widget overlay for a specific code line.
+///
+/// Used by [CodeEditor.widgetBuilder] to provide inline widgets (e.g. images, checkboxes)
+/// that overlay the code text. Return `null` if the line does not require a widget.
+typedef CodeLineWidgetBuilder = Widget? Function({
+  required BuildContext context,
+  required int index,
+  required CodeLine codeLine,
+});
+
 class CodeEditorStyle {
 
   /// Creates a code editor style.
@@ -192,6 +203,7 @@ class CodeEditor extends StatefulWidget {
     this.padding,
     this.margin,
     this.indicatorBuilder,
+    this.widgetBuilder,
     this.scrollbarBuilder,
     this.verticalScrollbarWidth,
     this.horizontalScrollbarHeight,
@@ -250,6 +262,8 @@ class CodeEditor extends StatefulWidget {
 
   /// Use this to build your own scroll bar widget.
   final CodeScrollbarBuilder? scrollbarBuilder;
+  /// Builder for inline widgets overlays.
+  final CodeLineWidgetBuilder? widgetBuilder;
 
   /// The width of the vertical scrollbar.
   final double? verticalScrollbarWidth;
@@ -512,6 +526,7 @@ class _CodeEditorState extends State<CodeEditor> {
       editorKey: _editorKey,
       hint: widget.hint,
       indicatorBuilder: widget.indicatorBuilder,
+      widgetBuilder: widget.widgetBuilder,
       scrollbarBuilder: widget.scrollbarBuilder,
       verticalScrollbarWidth: widget.verticalScrollbarWidth,
       horizontalScrollbarHeight: widget.horizontalScrollbarHeight,
