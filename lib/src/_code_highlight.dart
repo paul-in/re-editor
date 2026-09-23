@@ -23,6 +23,10 @@ class _CodeHighlighter extends ValueNotifier<List<_HighlightResult>> {
     _processHighlight();
   }
 
+  set enableVariableLineHeight(bool value) {
+    _provider.enableVariableLineHeight = value;
+  }
+
   set controller(CodeLineEditingController value) {
     if (_controller == value) {
       return;

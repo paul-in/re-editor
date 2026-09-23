@@ -136,6 +136,12 @@ abstract class CodeLineEditingController extends ValueNotifier<CodeLineEditingVa
   /// Get the current editor code selections.
   CodeLineSelection get selection;
 
+  /// The Fenwick-tree cache tracking the height delta of each line relative to
+  /// [preferredLineHeight]. Updated automatically on every text mutation.
+  /// Consumed by the render layer to compute Y-offsets in O(log N) time.
+  /// Only meaningful when [CodeEditor.enableVariableLineHeight] is true.
+  LineHeightCache get lineHeightCache;
+
   /// Get the range of code that is still being composed.
   TextRange get composing;
 

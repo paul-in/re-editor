@@ -11,6 +11,7 @@ class _ParagraphImpl extends IParagraph {
   final bool _trucated;
   final double _preferredLineHeight;
   final int _lineCount;
+  final bool _enableVariableLineHeight;
 
   // For performance, do not init here
   Map<TextPosition, Offset?>? _offsets;
@@ -21,8 +22,10 @@ class _ParagraphImpl extends IParagraph {
     required this.paragraph,
     required bool trucated,
     required double preferredLineHeight,
+    required bool enableVariableLineHeight,
   }) : _trucated = trucated,
     _preferredLineHeight = preferredLineHeight,
+    _enableVariableLineHeight = enableVariableLineHeight,
     _lineCount = (paragraph.height / preferredLineHeight).ceil();
 
   int get runeLength => text.runes.length;
@@ -38,7 +41,7 @@ class _ParagraphImpl extends IParagraph {
   double get width => _applyFloatingPointHack(max(0, paragraph.longestLine));
 
   @override
-  double get height => lineCount * preferredLineHeight;
+  double get height => _enableVariableLineHeight ? paragraph.height : lineCount * preferredLineHeight;
 
   @override
   double get preferredLineHeight => _preferredLineHeight;
@@ -204,6 +207,15 @@ class _CodeParagraphProvider {
   int? _maxLengthSingleLineRendering;
 
   _CodeParagraphProvider() : _cachedParagraphs = {};
+  bool _enableVariableLineHeight = false;
+
+  bool get enableVariableLineHeight => _enableVariableLineHeight;
+  set enableVariableLineHeight(bool value) {
+    if (_enableVariableLineHeight == value) return;
+    _enableVariableLineHeight = value;
+    _style = null; // Force rebuild of paragraph style next time
+    clearCache();
+  }
 
   void updateBaseStyle(TextStyle style) {
     final ui.TextStyle uiStyle = style.getTextStyle();
@@ -217,7 +229,7 @@ class _CodeParagraphProvider {
         fontSize: style.fontSize,
         fontFamily: style.fontFamily,
         height: style.height,
-        forceStrutHeight: true,
+        forceStrutHeight: !enableVariableLineHeight,
       )
     );
     _style = uiStyle;
@@ -320,6 +332,7 @@ class _CodeParagraphProvider {
       paragraph: paragraph,
       trucated: trucated,
       preferredLineHeight: _preferredLineHeight!,
+      enableVariableLineHeight: enableVariableLineHeight,
     );
   }
 

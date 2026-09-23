@@ -18,6 +18,7 @@ class _CodeLineEditingControllerImpl extends ValueNotifier<CodeLineEditingValue>
   @override
   final CodeLineOffsetMapperBuilder? offsetMapperBuilder;
   late final _CodeLineEditingCache _cache;
+  late final LineHeightCache _lineHeightCache;
   late int _preEditLineIndex;
   CodeLineEditingValue? _preValue;
   GlobalKey? _editorKey;
@@ -29,6 +30,7 @@ class _CodeLineEditingControllerImpl extends ValueNotifier<CodeLineEditingValue>
     this.offsetMapperBuilder,
   }) : super(CodeLineEditingValue(codeLines: codeLines)) {
     _cache = _CodeLineEditingCache(this);
+    _lineHeightCache = LineHeightCache(codeLines.length);
     _preEditLineIndex = -1;
   }
 
@@ -93,6 +95,9 @@ class _CodeLineEditingControllerImpl extends ValueNotifier<CodeLineEditingValue>
 
   @override
   CodeLineSelection get selection => value.selection;
+
+  @override
+  LineHeightCache get lineHeightCache => _lineHeightCache;
 
   @override
   TextRange get composing => value.composing;
@@ -1808,6 +1813,12 @@ class _CodeLineEditingControllerImpl extends ValueNotifier<CodeLineEditingValue>
     if (range.endIndex + 1 < codeLines.length) {
       newCodeLines.addFrom(codeLines, range.endIndex + 1);
     }
+    
+    // Synchronize the height cache with the text model change.
+    final int removed = range.endIndex - range.startIndex + 1;
+    final int added = replaceCodeLines.length;
+    _lineHeightCache.replaceRange(range.startIndex, removed, added);
+
     value = CodeLineEditingValue(
       codeLines: newCodeLines,
       selection: CodeLineSelection.collapsed(
@@ -2150,6 +2161,9 @@ class _CodeLineEditingControllerDelegate implements CodeLineEditingController {
 
   @override
   CodeLineSelection get selection => _delegate.selection;
+
+  @override
+  LineHeightCache get lineHeightCache => _delegate.lineHeightCache;
 
   @override
   set selection(CodeLineSelection value) {

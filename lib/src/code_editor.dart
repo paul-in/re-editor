@@ -205,6 +205,7 @@ class CodeEditor extends StatefulWidget {
     this.readOnly,
     this.showCursorWhenReadOnly,
     this.wordWrap,
+    this.enableVariableLineHeight = false,
     this.autocompleteSymbols,
     this.autofocus,
     this.focusNode,
@@ -298,6 +299,10 @@ class CodeEditor extends StatefulWidget {
 
   /// Should wrap the word.
   final bool? wordWrap;
+  /// Whether to enable variable line height support.
+  /// If true, paragraphs are allowed to have heights greater than the default font height,
+  /// and a [LineHeightCache] is used to track offsets efficiently.
+  final bool enableVariableLineHeight;
 
   /// When entering a closed symbol, should the other half be automatically completed.
   /// For example, when entering a double quote, the other half will be automatically added.
@@ -510,6 +515,7 @@ class _CodeEditorState extends State<CodeEditor> {
       scrollbarBuilder: widget.scrollbarBuilder,
       verticalScrollbarWidth: widget.verticalScrollbarWidth,
       horizontalScrollbarHeight: widget.horizontalScrollbarHeight,
+      enableVariableLineHeight: widget.enableVariableLineHeight,
       textStyle: baseStyle.copyWith(
         color: widget.style?.textColor ?? theme.textTheme.bodyLarge?.color,
       ),

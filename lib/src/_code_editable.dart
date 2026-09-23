@@ -37,6 +37,7 @@ class _CodeEditable extends StatefulWidget {
   final _CodeFloatingCursorController floatingCursorController;
   final CodeHighlightTheme? codeTheme;
   final bool readOnly;
+  final bool enableVariableLineHeight;
   final bool autofocus;
   final bool wordWrap;
   final int? maxLengthSingleLineRendering;
@@ -80,6 +81,7 @@ class _CodeEditable extends StatefulWidget {
     required this.readOnly,
     required this.autofocus,
     required this.wordWrap,
+    required this.enableVariableLineHeight,
     this.maxLengthSingleLineRendering,
     required this.findController,
     required this.scrollController,
@@ -313,6 +315,8 @@ class _CodeEditableState extends State<_CodeEditable> with AutomaticKeepAliveCli
       maxLengthSingleLineRendering: widget.findController.value != null ? null : widget.maxLengthSingleLineRendering,
       startHandleLayerLink: widget.startHandleLayerLink,
       endHandleLayerLink: widget.endHandleLayerLink,
+        enableVariableLineHeight: widget.enableVariableLineHeight,
+        lineHeightCache: widget.controller.lineHeightCache,
     );
   }
 
