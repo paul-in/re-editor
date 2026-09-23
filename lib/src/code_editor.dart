@@ -10,6 +10,7 @@ typedef CodeLineWidgetBuilder = Widget? Function({
   required BuildContext context,
   required int index,
   required CodeLine codeLine,
+  required IParagraph paragraph,
 });
 
 class CodeEditorStyle {

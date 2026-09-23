@@ -1,4 +1,3 @@
-import "package:flutter/scheduler.dart";
 part of re_editor;
 
 const double _kDefaultTextSize = 13.0;
@@ -586,6 +585,7 @@ class _CodeWidgetOverlayState extends State<_CodeWidgetOverlay> {
             context: context,
             index: paragraph.index,
             codeLine: widget.codeLines[paragraph.index],
+            paragraph: paragraph.paragraph,
           );
 
           if (childWidget != null) {

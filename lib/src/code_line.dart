@@ -331,7 +331,16 @@ abstract class CodeLineEditingController extends ValueNotifier<CodeLineEditingVa
   /// Replaces all substrings that match [pattern] with [replacement].
   void replaceAll(Pattern pattern, String replacement);
 
-  /// Reverts the value on the stack to the previous value.
+  /// Forces the editor to rebuild its rendered paragraphs and clear its cache.
+  /// Useful when external state used by [spanBuilder] or [widgetBuilder] changes
+  /// (e.g. an image finishes loading and the line height must be updated).
+  void rebuildSpans();
+
+  /// An opaque counter that increments each time [rebuildSpans] is called.
+  /// Internal components (such as the highlighter) can observe this value to
+  /// detect forced rebuilds without relying on fragile type casts.
+  int get rebuildSignal;
+
   void undo();
 
   /// Updates the value on the stack to the next value.

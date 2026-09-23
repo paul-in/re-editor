@@ -8,6 +8,7 @@ class _CodeHighlighter extends ValueNotifier<List<_HighlightResult>> {
 
   CodeLineEditingController _controller;
   CodeHighlightTheme? _theme;
+  int _lastRebuildSignal = 0;
 
   _CodeHighlighter({
     required BuildContext context,
@@ -164,8 +165,20 @@ class _CodeHighlighter extends ValueNotifier<List<_HighlightResult>> {
   }
 
   void _onCodesChanged() {
-    if (_controller.preValue?.codeLines == _controller.codeLines) {
+    // Check whether the developer explicitly requested a cache bust (e.g. an
+    // image finished loading and the span heights need to be recalculated).
+    final int currentSignal = _controller.rebuildSignal;
+    final bool forceRebuild = _lastRebuildSignal != currentSignal;
+    if (forceRebuild) {
+      _lastRebuildSignal = currentSignal;
+    }
+
+    if (!forceRebuild && _controller.preValue?.codeLines == _controller.codeLines) {
       return;
+    }
+
+    if (forceRebuild) {
+      clearCache();
     }
     _processHighlight();
   }

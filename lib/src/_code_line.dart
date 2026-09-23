@@ -957,6 +957,15 @@ class _CodeLineEditingControllerImpl extends ValueNotifier<CodeLineEditingValue>
     });
   }
 
+  int _rebuildSignal = 0;
+  int get rebuildSignal => _rebuildSignal;
+
+  @override
+  void rebuildSpans() {
+    _rebuildSignal++;
+    notifyListeners();
+  }
+
   @override
   void undo() => _cache.undo();
 
@@ -2540,6 +2549,19 @@ class _CodeLineEditingControllerDelegate implements CodeLineEditingController {
   @override
   void transposeCharacters() {
     _delegate.transposeCharacters();
+  }
+
+  int get rebuildSignal {
+    if (_delegate is _CodeLineEditingControllerImpl) {
+      return (_delegate as _CodeLineEditingControllerImpl).rebuildSignal;
+    }
+    return 0;
+  }
+
+  @override
+  void rebuildSpans() {
+    _delegate.rebuildSpans();
+    notifyListeners();
   }
 
   @override
