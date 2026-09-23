@@ -8,6 +8,24 @@ typedef CodeLineSpanBuilder = TextSpan Function({
   required TextStyle style,
 });
 
+/// Maps text positions between the visual (rendered) representation and the
+/// raw text buffer, for use with custom [spanBuilder]s that alter text length.
+///
+/// [visualToRaw] converts a position in the visual span to the corresponding
+/// raw buffer index. [rawToVisual] does the reverse.
+class CodeLineOffsetMapper {
+  final TextPosition Function(TextPosition visualPosition) visualToRaw;
+  final TextPosition Function(TextPosition rawPosition) rawToVisual;
+  const CodeLineOffsetMapper({required this.visualToRaw, required this.rawToVisual});
+}
+
+/// Builder that returns an optional [CodeLineOffsetMapper] for a given line.
+/// Return `null` when no mapping is needed for that line (e.g. plain text).
+typedef CodeLineOffsetMapperBuilder = CodeLineOffsetMapper? Function({
+  required int index,
+  required CodeLine codeLine,
+});
+
 /// A controller for an editor field.
 ///
 /// Whenever the user modifies a editor field with an associated
@@ -53,10 +71,12 @@ abstract class CodeLineEditingController extends ValueNotifier<CodeLineEditingVa
     CodeLines codeLines = _kInitialCodeLines,
     CodeLineOptions options = const CodeLineOptions(),
     CodeLineSpanBuilder? spanBuilder,
+    CodeLineOffsetMapperBuilder? offsetMapperBuilder,
   }) => _CodeLineEditingControllerImpl(
     codeLines: codeLines,
     options: options,
     spanBuilder: spanBuilder,
+    offsetMapperBuilder: offsetMapperBuilder,
   );
 
   /// Creates a controller for a given text.
@@ -106,6 +126,9 @@ abstract class CodeLineEditingController extends ValueNotifier<CodeLineEditingVa
 
   /// Get the code line options.
   CodeLineOptions get options;
+
+  /// Returns the builder used to create per-line offset mappers.
+  CodeLineOffsetMapperBuilder? get offsetMapperBuilder;
 
   /// The current codes the user is editing.
   CodeLines get codeLines;

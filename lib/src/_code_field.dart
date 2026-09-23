@@ -15,6 +15,7 @@ class _CodeField extends SingleChildRenderObjectWidget {
   final ValueNotifier<bool> showCursorNotifier;
   final ValueNotifier<_FloatingCursorState> floatingCursorNotifier;
   final ValueChanged<List<CodeLineRenderParagraph>> onRenderParagraphsChanged;
+  final CodeLineOffsetMapperBuilder? offsetMapperBuilder;
   final Color selectionColor;
   final Color highlightColor;
   final Color cursorColor;
@@ -44,6 +45,7 @@ class _CodeField extends SingleChildRenderObjectWidget {
     required this.showCursorNotifier,
     required this.floatingCursorNotifier,
     required this.onRenderParagraphsChanged,
+    this.offsetMapperBuilder,
     required this.selectionColor,
     required this.highlightColor,
     required this.cursorColor,
@@ -77,6 +79,7 @@ class _CodeField extends SingleChildRenderObjectWidget {
     showCursorNotifier: showCursorNotifier,
     floatingCursorNotifier: floatingCursorNotifier,
     onRenderParagraphsChanged: onRenderParagraphsChanged,
+    offsetMapperBuilder: offsetMapperBuilder,
     selectionColor: selectionColor,
     highlightColor: highlightColor,
     cursorColor: cursorColor,
@@ -108,6 +111,7 @@ class _CodeField extends SingleChildRenderObjectWidget {
       ..showCursorNotifier = showCursorNotifier
       ..floatingCursorNotifier = floatingCursorNotifier
       ..onRenderParagraphsChanged = onRenderParagraphsChanged
+      ..offsetMapperBuilder = offsetMapperBuilder
       ..selectionColor = selectionColor
       ..highlightColor = highlightColor
       ..cursorColor = cursorColor
@@ -141,6 +145,7 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
   ValueNotifier<bool> _showCursorNotifier;
   ValueNotifier<_FloatingCursorState> _floatingCursorNotifier;
   ValueChanged<List<CodeLineRenderParagraph>> _onRenderParagraphsChanged;
+  CodeLineOffsetMapperBuilder? _offsetMapperBuilder;
   EdgeInsetsGeometry _padding;
   bool _readOnly;
   int? _maxLengthSingleLineRendering;
@@ -171,6 +176,7 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
     required ValueNotifier<bool> showCursorNotifier,
     required ValueNotifier<_FloatingCursorState> floatingCursorNotifier,
     required ValueChanged<List<CodeLineRenderParagraph>> onRenderParagraphsChanged,
+    CodeLineOffsetMapperBuilder? offsetMapperBuilder,
     required Color selectionColor,
     required Color highlightColor,
     required Color cursorColor,
@@ -196,6 +202,7 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
     _showCursorNotifier = showCursorNotifier,
     _floatingCursorNotifier = floatingCursorNotifier,
     _onRenderParagraphsChanged = onRenderParagraphsChanged,
+    _offsetMapperBuilder = offsetMapperBuilder,
     _padding = padding,
     _readOnly = readOnly,
     _maxLengthSingleLineRendering = maxLengthSingleLineRendering,
@@ -378,6 +385,14 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
       return;
     }
     _onRenderParagraphsChanged = value;
+  }
+
+  set offsetMapperBuilder(CodeLineOffsetMapperBuilder? value) {
+    if (_offsetMapperBuilder == value) {
+      return;
+    }
+    _offsetMapperBuilder = value;
+    markNeedsLayout(); // Need to recalculate if mapping changes
   }
 
   set selectionColor(Color value) {
@@ -991,13 +1006,35 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
     super.dispose();
   }
 
+
+  CodeLinePosition _toVisualPosition(CodeLinePosition rawPos) {
+    if (_offsetMapperBuilder == null) return rawPos;
+    final mapper = _offsetMapperBuilder!(index: rawPos.index, codeLine: _codes[rawPos.index]);
+    if (mapper == null) return rawPos;
+    return CodeLinePosition.from(
+      index: rawPos.index,
+      position: mapper.rawToVisual(rawPos),
+    );
+  }
+
+  CodeLinePosition _toRawPosition(CodeLinePosition visualPos) {
+    if (_offsetMapperBuilder == null) return visualPos;
+    final mapper = _offsetMapperBuilder!(index: visualPos.index, codeLine: _codes[visualPos.index]);
+    if (mapper == null) return visualPos;
+    return CodeLinePosition.from(
+      index: visualPos.index,
+      position: mapper.visualToRaw(visualPos),
+    );
+  }
+
   CodeLinePosition? calculateTextPosition(Offset localPosition) {
     final Offset offset = localPosition + paintOffset;
     final CodeLineRenderParagraph? target = _findDisplayRenderParagraph(offset, true);
     if (target == null) {
       return null;
     }
-    return target.getPosition(offset - target.offset);
+    CodeLinePosition visualPos = target.getPosition(offset - target.offset);
+    return _toRawPosition(visualPos);
   }
 
   Offset? calculateTextPositionViewportOffset(CodeLinePosition position) {
@@ -1005,7 +1042,7 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
     if (paragraph == null) {
       return null;
     }
-    final Offset? offset = paragraph.getOffset(position);
+    final Offset? offset = paragraph.getOffset(_toVisualPosition(position));
     if (offset == null) {
       return null;
     }
@@ -1550,8 +1587,16 @@ abstract class _CodeFieldSelectionsPainter extends _CodeFieldExtraPainter {
         if (paragraph.index == end.index) {
           endIndex = end.offset;
         } else {
+          endIndex = render._codes[paragraph.index].text.length; 
+        }
+
+        startIndex = render._toVisualPosition(CodeLinePosition.from(index: paragraph.index, position: TextPosition(offset: startIndex))).offset;
+        endIndex = render._toVisualPosition(CodeLinePosition.from(index: paragraph.index, position: TextPosition(offset: endIndex))).offset;
+        
+        if (endIndex > paragraph.length) {
           endIndex = paragraph.length;
         }
+
         final List<Rect> rects;
         if (startIndex == endIndex) {
           final Offset? offset = paragraph.getOffset(TextPosition(offset: startIndex));
@@ -1690,7 +1735,8 @@ class _CodeFieldCursorPainter extends _CodeFieldExtraPainter {
     if (paragraph == null) {
       return;
     }
-    Offset? offset = paragraph.getOffset(_position);
+    
+    Offset? offset = paragraph.getOffset(render._toVisualPosition(_position));
     if (offset == null) {
       return;
     }

@@ -300,6 +300,7 @@ class _CodeEditableState extends State<_CodeEditable> with AutomaticKeepAliveCli
           focusedIndex: widget.controller.selection.extentIndex
         );
       },
+      offsetMapperBuilder: widget.controller.offsetMapperBuilder,
       selectionColor: widget.selectionColor,
       highlightColor: widget.highlightColor,
       cursorColor: widget.cursorColor,

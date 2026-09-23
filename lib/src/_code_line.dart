@@ -15,6 +15,8 @@ class _CodeLineEditingControllerImpl extends ValueNotifier<CodeLineEditingValue>
   @override
   final CodeLineOptions options;
   final CodeLineSpanBuilder? spanBuilder;
+  @override
+  final CodeLineOffsetMapperBuilder? offsetMapperBuilder;
   late final _CodeLineEditingCache _cache;
   late int _preEditLineIndex;
   CodeLineEditingValue? _preValue;
@@ -24,6 +26,7 @@ class _CodeLineEditingControllerImpl extends ValueNotifier<CodeLineEditingValue>
     required CodeLines codeLines,
     required this.options,
     this.spanBuilder,
+    this.offsetMapperBuilder,
   }) : super(CodeLineEditingValue(codeLines: codeLines)) {
     _cache = _CodeLineEditingCache(this);
     _preEditLineIndex = -1;
@@ -2128,6 +2131,9 @@ class _CodeLineEditingControllerDelegate implements CodeLineEditingController {
 
   @override
   CodeLines get codeLines => _delegate.codeLines;
+
+  @override
+  CodeLineOffsetMapperBuilder? get offsetMapperBuilder => _delegate.offsetMapperBuilder;
 
   @override
   set codeLines(CodeLines value) {
