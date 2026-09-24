@@ -844,12 +844,27 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
     if (paragraph == null) {
       return null;
     }
-    final Offset? offset = paragraph.getOffset(position.textPosition);
-    if (offset == null) {
-      return null;
-    }
-    if (offset.dy > 0) {
-      return paragraph.getPosition(offset - Offset(0, paragraph.preferredLineHeight));
+
+    final CodeLinePosition visualPosition = _toVisualPosition(position);
+    final Offset? offset = paragraph.getOffset(visualPosition.textPosition);
+    if (offset == null) return null;
+
+    final int safeOffset = max(0, min(visualPosition.offset, paragraph.length - 1));
+    final List<Rect> rects = paragraph.paragraph.getRangeRects(TextRange(start: safeOffset, end: safeOffset + 1));
+
+    if (rects.isNotEmpty) {
+      final double top = rects.first.top;
+      // If there is space above this visual line (we are not on the first visual line)
+      if (top > 1.0) {
+        final TextPosition visualResult = paragraph.getPosition(Offset(offset.dx, top - 1.0));
+        return _toRawPosition(CodeLinePosition.from(index: position.index, position: visualResult));
+      }
+    } else {
+      // Fallback for empty lines
+      if (offset.dy > 1.0) {
+        final TextPosition visualResult = paragraph.getPosition(offset - Offset(0, paragraph.preferredLineHeight));
+        return _toRawPosition(CodeLinePosition.from(index: position.index, position: visualResult));
+      }
     }
     // The up position is not in this code line
     IParagraph? upParagraph = findDisplayParagraphByLineIndex(position.index - 1)?.paragraph;
@@ -860,10 +875,9 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
         return null;
       }
     }
-    return CodeLinePosition.from(
-      index: position.index - 1,
-      position: upParagraph.getPosition(Offset(offset.dx, upParagraph.height - upParagraph.preferredLineHeight))
-    );
+    
+    final TextPosition visualResult = upParagraph.getPosition(Offset(offset.dx, upParagraph.height - 1.0));
+    return _toRawPosition(CodeLinePosition.from(index: position.index - 1, position: visualResult));
   }
 
   CodeLinePosition? getDownPosition(CodeLinePosition position) {
@@ -871,12 +885,26 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
     if (paragraph == null) {
       return null;
     }
-    final Offset? offset = paragraph.getOffset(position.textPosition);
-    if (offset == null) {
-      return null;
-    }
-    if (offset.dy < paragraph.height - paragraph.preferredLineHeight) {
-      return paragraph.getPosition(offset + Offset(0, paragraph.preferredLineHeight));
+
+    final CodeLinePosition visualPosition = _toVisualPosition(position);
+    final Offset? offset = paragraph.getOffset(visualPosition.textPosition);
+    if (offset == null) return null;
+
+    final int safeOffset = max(0, min(visualPosition.offset, paragraph.length - 1));
+    final List<Rect> rects = paragraph.paragraph.getRangeRects(TextRange(start: safeOffset, end: safeOffset + 1));
+
+    if (rects.isNotEmpty) {
+      final double bottom = rects.first.bottom;
+      if (bottom < paragraph.height - 1.0) {
+        final TextPosition visualResult = paragraph.getPosition(Offset(offset.dx, bottom + 1.0));
+        return _toRawPosition(CodeLinePosition.from(index: position.index, position: visualResult));
+      }
+    } else {
+      // Fallback for empty lines
+      if (offset.dy < paragraph.height - paragraph.preferredLineHeight) {
+        final TextPosition visualResult = paragraph.getPosition(offset + Offset(0, paragraph.preferredLineHeight));
+        return _toRawPosition(CodeLinePosition.from(index: position.index, position: visualResult));
+      }
     }
     // The up position is not in this code line
     IParagraph? downParagraph = findDisplayParagraphByLineIndex(position.index + 1)?.paragraph;
@@ -887,10 +915,9 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
         return null;
       }
     }
-    return CodeLinePosition.from(
-      index: position.index + 1,
-      position: downParagraph.getPosition(Offset(offset.dx, 0))
-    );
+    
+    final TextPosition visualResult = downParagraph.getPosition(Offset(offset.dx, 1.0));
+    return _toRawPosition(CodeLinePosition.from(index: position.index + 1, position: visualResult));
   }
 
   @override
