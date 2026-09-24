@@ -179,8 +179,21 @@ class _CodeHighlighter extends ValueNotifier<List<_HighlightResult>> {
 
     if (forceRebuild) {
       clearCache();
+      // Explicitly notify the CodeFieldRender to mark itself as needing layout.
+      // Relying on the background highlighting isolate to eventually finish and
+      // trigger a repaint is fragile (it might be skipped, cached, or crash silently).
+      // Since we just cleared the cache for a synchronous UI update, we must 
+      // invalidate the layout immediately in the same frame.
+      notifyListeners();
     }
-    _processHighlight();
+    
+    // Optimization: only wake up the background isolate if the raw text actually changed.
+    // This is especially important when a forceRebuild is triggered externally 
+    // (e.g., an asynchronous image finished loading). In that case, we only need a 
+    // visual layout update; re-parsing the identical text would be a waste of CPU.
+    if (_controller.preValue?.codeLines != _controller.codeLines) {
+      _processHighlight();
+    }
   }
 
   void _processHighlight() {
