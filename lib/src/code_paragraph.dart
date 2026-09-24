@@ -23,6 +23,6 @@ abstract class IParagraph {
 
   Offset? getOffset(TextPosition position);
 
-  List<Rect> getRangeRects(TextRange range);
+  List<Rect> getRangeRects(TextRange range, {bool tight = false});
 
 }

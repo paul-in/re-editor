@@ -122,7 +122,7 @@ class _ParagraphImpl extends IParagraph {
   }
 
   @override
-  List<Rect> getRangeRects(TextRange range) {
+  List<Rect> getRangeRects(TextRange range, {bool tight = false}) {
     if (text.isEmpty) {
       return [
         Rect.fromLTWH(0, 0, 0, _preferredLineHeight)
@@ -131,7 +131,8 @@ class _ParagraphImpl extends IParagraph {
     if (range.isCollapsed) {
       return const [];
     }
-    return paragraph.getBoxesForRange(range.start, range.end, boxHeightStyle: ui.BoxHeightStyle.max).map((e) => e.toRect()).toList();
+    final style = tight ? ui.BoxHeightStyle.tight : ui.BoxHeightStyle.max;
+    return paragraph.getBoxesForRange(range.start, range.end, boxHeightStyle: style).map((e) => e.toRect()).toList();
   }
 
   Offset? _getOffsetDownstream(int position) {

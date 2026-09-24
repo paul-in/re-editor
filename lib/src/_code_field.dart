@@ -1614,7 +1614,7 @@ class _CodeCursorLinePainter extends _CodeFieldExtraPainter {
 
     double dynamicHeight = paragraph.preferredLineHeight;
     final int safeOffset = max(0, min(visualPos.offset, paragraph.length - 1));
-    final List<Rect> rects = paragraph.paragraph.getRangeRects(TextRange(start: safeOffset, end: safeOffset + 1));
+    final List<Rect> rects = paragraph.paragraph.getRangeRects(TextRange(start: safeOffset, end: safeOffset + 1), tight: true);
     if (rects.isNotEmpty) {
       offset = Offset(offset.dx, rects.first.top);
       dynamicHeight = rects.first.height;
@@ -1840,7 +1840,7 @@ class _CodeFieldCursorPainter extends _CodeFieldExtraPainter {
 
     double dynamicHeight = _height;
     final int safeOffset = max(0, min(visualPos.offset, paragraph.length - 1));
-    final List<Rect> rects = paragraph.paragraph.getRangeRects(TextRange(start: safeOffset, end: safeOffset + 1));
+    final List<Rect> rects = paragraph.paragraph.getRangeRects(TextRange(start: safeOffset, end: safeOffset + 1), tight: true);
     if (rects.isNotEmpty) {
       offset = Offset(offset.dx, rects.first.top);
       dynamicHeight = rects.first.height;
