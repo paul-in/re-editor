@@ -1607,9 +1607,17 @@ class _CodeCursorLinePainter extends _CodeFieldExtraPainter {
     if (paragraph == null) {
       return;
     }
-    Offset? offset = paragraph.getOffset(_selection.extent);
-    if (offset == null) {
-      return;
+
+    final CodeLinePosition visualPos = render._toVisualPosition(_selection.extent);
+    Offset? offset = paragraph.getOffset(visualPos.textPosition);
+    if (offset == null) return;
+
+    double dynamicHeight = paragraph.preferredLineHeight;
+    final int safeOffset = max(0, min(visualPos.offset, paragraph.length - 1));
+    final List<Rect> rects = paragraph.paragraph.getRangeRects(TextRange(start: safeOffset, end: safeOffset + 1));
+    if (rects.isNotEmpty) {
+      offset = Offset(offset.dx, rects.first.top);
+      dynamicHeight = rects.first.height;
     }
     offset += paragraph.offset - render.paintOffset;
     if (offset.dy + paragraph.preferredLineHeight < 0 || offset.dy >= size.height) {
@@ -1617,8 +1625,7 @@ class _CodeCursorLinePainter extends _CodeFieldExtraPainter {
     }
     _paint.color = _color!;
     canvas.drawLine(Offset(0, offset.dy), Offset(size.width, offset.dy), _paint);
-    canvas.drawLine(Offset(0, offset.dy + paragraph.preferredLineHeight),
-      Offset(size.width, offset.dy + paragraph.preferredLineHeight), _paint);
+    canvas.drawLine(Offset(0, offset.dy + dynamicHeight), Offset(size.width, offset.dy + dynamicHeight), _paint);
   }
 
 }
@@ -1827,20 +1834,29 @@ class _CodeFieldCursorPainter extends _CodeFieldExtraPainter {
       return;
     }
     
-    Offset? offset = paragraph.getOffset(render._toVisualPosition(_position));
-    if (offset == null) {
-      return;
+    final CodeLinePosition visualPos = render._toVisualPosition(_position);
+    Offset? offset = paragraph.getOffset(visualPos.textPosition);
+    if (offset == null) return;
+
+    double dynamicHeight = _height;
+    final int safeOffset = max(0, min(visualPos.offset, paragraph.length - 1));
+    final List<Rect> rects = paragraph.paragraph.getRangeRects(TextRange(start: safeOffset, end: safeOffset + 1));
+    if (rects.isNotEmpty) {
+      offset = Offset(offset.dx, rects.first.top);
+      dynamicHeight = rects.first.height;
     }
+
     offset += paragraph.offset - render.paintOffset;
-    if (offset.dx + _width < 0 || offset.dx >= size.width || offset.dy + _height < 0 || offset.dy >= size.height) {
+
+    if (offset.dx + _width < 0 || offset.dx >= size.width || offset.dy + dynamicHeight < 0 || offset.dy >= size.height) {
       return;
     }
-    _drawCaret(canvas, offset, size);
+    _drawCaret(canvas, offset, size, dynamicHeight);
   }
 
-  void _drawCaret(Canvas canvas, Offset offset, Size size) {
+  void _drawCaret(Canvas canvas, Offset offset, Size size, double height) {
     _paint.color = _color;
-    canvas.drawRRect(RRect.fromRectXY(Rect.fromLTWH(offset.dx - _width / 2, offset.dy, _width, _height), _width / 2, _width / 2), _paint);
+    canvas.drawRRect(RRect.fromRectXY(Rect.fromLTWH(offset.dx - _width / 2, offset.dy, _width, height), _width / 2, _width / 2), _paint);
   }
 
 }
