@@ -197,6 +197,7 @@ class CodeEditor extends StatefulWidget {
     this.controller,
     this.scrollController,
     this.findController,
+    this.chunkController,
     this.toolbarController,
     this.onChanged,
     this.style,
@@ -235,6 +236,9 @@ class CodeEditor extends StatefulWidget {
 
   /// Controls the search widget and actions.
   final CodeFindController? findController;
+
+  /// Controls code folding and chunking.
+  final CodeChunkController? chunkController;
 
   /// Controls the selection toolbar.
   final SelectionToolbarController? toolbarController;
@@ -401,7 +405,7 @@ class _CodeEditorState extends State<CodeEditor> {
     _findController.addListener(_updateWidget);
     _scrollController = widget.scrollController ?? CodeScrollController();
     _scrollController.bindEditor(_editorKey);
-    _chunkController = CodeChunkController(_editingController, widget.chunkAnalyzer ?? const DefaultCodeChunkAnalyzer());
+    _chunkController = widget.chunkController ?? CodeChunkController(_editingController, widget.chunkAnalyzer ?? const DefaultCodeChunkAnalyzer());
 
     _selectionOverlayController = kIsAndroid || kIsIOS ? _MobileSelectionOverlayController(
       context: context,
@@ -454,10 +458,12 @@ class _CodeEditorState extends State<CodeEditor> {
     if (widget.findController == null) {
       _findController.dispose();
     }
-    if (widget.scrollController== null) {
+    if (widget.scrollController == null) {
       _scrollController.dispose();
     }
-    _chunkController.dispose();
+    if (widget.chunkController == null) {
+      _chunkController.dispose();
+    }
     _selectionOverlayController.dispose();
     _floatingCursorController.dispose();
     super.dispose();
@@ -496,9 +502,11 @@ class _CodeEditorState extends State<CodeEditor> {
       _scrollController = widget.scrollController ?? CodeScrollController();
       _scrollController.bindEditor(_editorKey);
     }
-    if (oldWidget.chunkAnalyzer != widget.chunkAnalyzer || oldWidget.controller != widget.controller) {
-      _chunkController.dispose();
-      _chunkController = CodeChunkController(_editingController, widget.chunkAnalyzer ?? const DefaultCodeChunkAnalyzer());
+    if (oldWidget.chunkController != widget.chunkController || oldWidget.chunkAnalyzer != widget.chunkAnalyzer || oldWidget.controller != widget.controller) {
+      if (oldWidget.chunkController == null) {
+        _chunkController.dispose();
+      }
+      _chunkController = widget.chunkController ?? CodeChunkController(_editingController, widget.chunkAnalyzer ?? const DefaultCodeChunkAnalyzer());
     }
     if (oldWidget.readOnly != widget.readOnly) {
       _inputController.readOnly = widget.readOnly ?? false;

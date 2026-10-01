@@ -4,6 +4,7 @@ import 'package:re_editor_exmaple/editor_autocomplete.dart';
 import 'package:re_editor_exmaple/editor_basic_field.dart';
 import 'package:re_editor_exmaple/editor_json.dart';
 import 'package:re_editor_exmaple/editor_large_text.dart';
+import 'package:re_editor_exmaple/editor_markdown.dart';
 
 void main() {
   runApp(const MyApp());
@@ -52,6 +53,7 @@ class _MyHomePageState extends State<MyHomePage> {
     'Json Editor': JsonEditor(),
     'Auto Complete': AutoCompleteEditor(),
     'Large Text': LargeTextEditor(),
+    'Markdown': MarkdownEditor(),
   };
 
   int _index = 0;
